@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "./components/Navbar/Navbar";
 import Sidebar from "./components/Sidebar/Sidebar";
 import ClientOnly from "./components/ClientOnly";
+import UserBar from "./components/User/User";
 
 export const metadata = {
   title: "Sentry",
@@ -25,20 +26,11 @@ export default function RootLayout({
         <div className="flex flex-row justify-start">
         <ClientOnly>
           <Sidebar />
-          <div className="flex px-4">
-            {/* <Navbar /> */}
-          </div>
-        </ClientOnly>
-
-        <div className="flex-1 h-full">
+           <div className="flex-1 px-10 h-full">
           {children}
           </div>
-
-
+        </ClientOnly>
         </div>
-        
-
-        
       </body>
     </html>
   );

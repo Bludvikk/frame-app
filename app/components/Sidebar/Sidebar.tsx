@@ -38,7 +38,7 @@ const Sidebar = () => {
           open ? "w-72" : "w-20"
         } duration-300 justify-start
       item-center h-full shadow-lg rounded-md border
-      fixed bg-slate-950 pt-4`}
+      relative bg-slate-950 pt-4`}
       >
         <BsArrowLeftShort
           className={`bg-slate-950 text-white text-3xl rounded-full absolute -right-4 top-12 border
