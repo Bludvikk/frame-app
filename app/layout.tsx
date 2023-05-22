@@ -19,10 +19,7 @@ export default async function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className={`${font.className} h-full min-h-full`}>
-      
           {children}
-
-      
       </body>
     </html>
   );

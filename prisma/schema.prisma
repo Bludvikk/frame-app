@@ -8,10 +8,14 @@ datasource db {
 }
 
 model User {
-  id       Int     @id @default(autoincrement())
-  email    String  @unique
-  password String
-  name     String?
+  id             Int     @id @default(autoincrement())
+  email          String  @unique
+  hashedPassword String
+  firstName      String
+  lastName       String
+  status         String?
+  role           String?
+  contactNumber  String
 }
 
 model Entity {
@@ -57,7 +61,7 @@ model MasterOrganization {
 model MasterBusiness {
   id             Int                @id @default(autoincrement())
   code           String?
-  name           String
+  name           String             @unique
   businessTypeId Int
   appID          Int
   providerId     Int

@@ -22,28 +22,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import axios from "axios";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm, Controller, SubmitHandler } from "react-hook-form";
 import { usePopOverStore } from "../../store/store";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 interface Reference {
-  id: string;
+  id: number;
   name: string;
 }
 
 const businessSchema = z.object({
   name: z.string(),
-  appID: z.number(),
-  providerId: z.number(),
-  businessTypeId: z.number(),
-})
+  appID: z.coerce.number(),
+  providerId: z.coerce.number(),
+  businessTypeId: z.coerce.number(),
+  organizationId: z.coerce.number(),
+});
 
-export type IBusinessSchema = z.infer<typeof businessSchema>
+export type IBusinessSchema = z.infer<typeof businessSchema>;
 
 const AddBusiness = () => {
-  const { createBusiness, selectedOrganization } = usePopOverStore();
+  const { selectedOrganization } = usePopOverStore();
+
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const {
     register,
@@ -51,18 +53,21 @@ const AddBusiness = () => {
     watch,
     control,
     formState: { errors },
+    setValue,
   } = useForm<IBusinessSchema>({
     defaultValues: {
       name: "",
       appID: 0,
       providerId: 0,
       businessTypeId: 0,
+      organizationId: 0,
     },
     mode: "onChange",
-    resolver: zodResolver(businessSchema)
+    resolver: zodResolver(businessSchema),
   });
 
   console.log(watch());
+  console.log(selectedOrganization?.name);
 
   const [businessTypes, setBusinessTypes] = useState<Reference[]>([]);
   const [appTypes, setAppTypes] = useState<Reference[]>([]);
@@ -88,39 +93,59 @@ const AddBusiness = () => {
     fetchData();
   }, []);
 
-  const onSubmit: SubmitHandler<IBusinessSchema> = async (data) => {
-    const { name, appID, businessTypeId, providerId } = data;
-  
-    if (!name || !appID || !businessTypeId || !providerId) {
-      console.error("All fields are required");
-      return;
-    }
-  
+  console.log(errors);
+
+  useEffect(() => {
+    const organizationId = selectedOrganization?.id;
+    setValue("organizationId", organizationId ?? 0);
+  }, [selectedOrganization?.id]);
+
+  const onSubmit = async (data: IBusinessSchema) => {
+    setIsSubmitting(true);
+
+    console.log("Submit");
     try {
-      // Call createBusiness function from your zustand store here
-      // Pass the name, selected organization, app, businessType, and provider as arguments
-      await createBusiness(name, appID, businessTypeId, providerId, selectedOrganization);
+      const { name, appID, businessTypeId, providerId } = data;
+
+      const organizationId = selectedOrganization?.id;
+
+      const response = await fetch("/api/business", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...data,
+          organizationId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Request failed");
+      }
+
+      const business = await response.json();
+      console.log(business);
     } catch (error) {
       console.error(error);
     }
-  }
-
-  console.log(selectedOrganization?.id && selectedOrganization?.name)
-  
+    setIsSubmitting(false);
+  };
 
   return (
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline">Add Business</Button>
       </DialogTrigger>
-      
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add Business</DialogTitle>
-            <DialogDescription>
-              Add a business and choose an application
-            </DialogDescription>
-          </DialogHeader>
+
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Add Business</DialogTitle>
+          <DialogDescription>
+            Add a business and choose an application
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="BusinessName" className="text-right">
@@ -136,93 +161,99 @@ const AddBusiness = () => {
                 })}
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
+            <div className="grid grid-cols-4 items-center gap-4 w-full">
               <Label htmlFor="businessType" className="text-right">
                 Business Type
               </Label>
-              <Select>
+              <Controller 
+              control={control}
+              name='businessTypeId'
+              render={({ field: { onChange, value}}) => (
+                <Select value={value.toString()} onValueChange={onChange}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select Business Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectGroup>
-                    {businessTypes.length > 0 &&
-                      businessTypes.map((bt) => (
-                        <Controller 
-                        control={control}
-                        name='businessTypeId'
-                        render={({ field: { onChange} }) => (
-                          <SelectItem
-                          onChange={onChange}
-                          id="BusinessTypeId"
-                          value={bt.id}
-                        >
-                          {bt.name}
+                  <SelectGroup> 
+                    <SelectLabel> Select Business Type </SelectLabel>
+                    {businessTypes.length > 0 && businessTypes.map((bt) => (
+                      <SelectItem value={bt.id.toString()}>
+                        {bt.name}
                         </SelectItem>
-                        )}
-                        
-                        />
-                      ))}
+                    ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
+              )}
+              
+              
+              />
+              
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="provider" className="text-right">
                 Provider
               </Label>
-              <Select>
+              <Controller 
+              control={control}
+              name='providerId'
+              render={({ field: { onChange, value}}) => (
+                <Select value={value.toString()} onValueChange={onChange}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Select Provider" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Provider</SelectLabel>
-                    {providers.length > 0 &&
-                      providers.map((prov) => (
-                        <SelectItem
-                          id={prov.id}
-                          value={prov.id}
-                          {...register("providerId", { required: false })}
-                        >
-                          {prov.name}
+                  <SelectGroup> 
+                  <SelectLabel> Select Provider </SelectLabel>
+                    {providers.length > 0 && providers.map((prov) => (
+                      <SelectItem value={prov.id.toString()}>
+                        {prov.name}
                         </SelectItem>
-                      ))}
+                    ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
+              )}
+              
+              
+              />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
                 Applications
               </Label>
-              <Select>
+              <Controller 
+              control={control}
+              name='appID'
+              render={({ field: { onChange, value}}) => (
+                <Select value={value.toString()} onValueChange={onChange}>
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Choose Applications" />
+                  <SelectValue placeholder="Select Business Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Applications</SelectLabel>
-                    {appTypes.length > 0 &&
-                      appTypes.map((app) => (
-                        <SelectItem
-                          value={app.id}
-                          {...register("appID", { required: true })}
-                        >
-                          {app.name}
+                  <SelectGroup> 
+                  <SelectLabel> Select App Type </SelectLabel>
+                    {appTypes.length > 0 && appTypes.map((app) => (
+                      <SelectItem value={app.id.toString()}>
+                        {app.name}
                         </SelectItem>
-                      ))}
+                    ))}
                   </SelectGroup>
                 </SelectContent>
               </Select>
+              )}
+              
+              
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit">Save changes</Button>
+            <Button type="submit">
+              {isSubmitting ? "Submitting..." : "Submit"}
+            </Button>
           </DialogFooter>
-          
-        </DialogContent>
-      
+        </form>
+      </DialogContent>
     </Dialog>
   );
 };

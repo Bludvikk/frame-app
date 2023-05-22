@@ -1,24 +1,28 @@
 "use client";
 import { Icon } from "@iconify/react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import ClientOnly from "../components/ClientOnly";
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-
-const LoginSchema = z.object({
-  email: z.string().min(1, { message: "Email is required" }),
-  password: z.string().min(1, { message: "Password is required" }),
-});
+import { ILogin, LoginSchema } from "../schema/userSchema";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { signIn } from 'next-auth/react';
+import { toast } from "react-hot-toast";
 
 const Login = () => {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
+
   const {
     handleSubmit,
     setError,
     control,
     formState: { errors },
-  } = useForm({
+  } = useForm<ILogin>({
     defaultValues: {
       email: "",
       password: "",
@@ -26,6 +30,27 @@ const Login = () => {
     resolver: zodResolver(LoginSchema),
     mode: 'onChange'
   });
+
+  const onSubmit: SubmitHandler<ILogin> = 
+  (data) => {
+    setIsLoading(true);
+
+    signIn('credentials', { 
+      ...data, 
+      redirect: false,
+    })
+    .then((callback) => {
+      setIsLoading(false);
+
+      if (callback?.ok) {
+        toast.success('Logged in');
+        router.push('\dashboard');
+      }
+      if (callback?.error) {
+        toast.error(callback.error);
+      }
+    });
+  }
 
   return (
     <ClientOnly>
@@ -62,7 +87,7 @@ const Login = () => {
             <h3 className="my-4 text-2xl font-semibold text-gray-700">
               Account Login
             </h3>
-            <form action="#" className="flex flex-col space-y-5">
+            <form action="#" onSubmit={handleSubmit(onSubmit)} className="flex flex-col space-y-5">
               <div className="flex flex-col space-y-1">
                 <label
                   htmlFor="email"
@@ -126,7 +151,7 @@ const Login = () => {
               </div>
               <div>
                 <Button
-                    variant='outline'
+                  variant='outline'
                   type="submit"
                   className="w-full px-4 py-2 text-lg text-white hover:bg-slate-600 hover:text-white font-semibold bg-slate-950"
                 >

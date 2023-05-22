@@ -1,14 +1,9 @@
 import { create } from "zustand";
-import { v4 as uuidv4 } from 'uuid';
-import { string, z } from "zod";
 import axios from 'axios'
-import { AppType } from "next/app";
-
 
 interface OrgOptions {
   id: number;
   name: string;
-  // organizationData: any[];
 }
 
 interface Business {
@@ -18,6 +13,26 @@ interface Business {
   appId: number;
   businessTypeId: number;
   providerId: number;
+  provider: {
+    name: string
+  },
+  app: {
+    name: string
+  },
+  businessType: {
+    name: string
+  }
+
+}
+
+interface Users {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  contactNumber: string;
+  status: string;
+  role: string
 }
 
 
@@ -27,23 +42,16 @@ interface PopoverState {
   setSelectedOrganization: (option: OrgOptions | null) => void;
   fetchOrganization: () => Promise<void>;
   businesses: Business[];
+  users: Users[];
+  fetchUsers: () => Promise<void>
   fetchBusinesses: () => Promise<void>;
   fetchBusinessesByOrganization: (organizationId: number) => Promise<void>; 
-  createBusiness: (name: string,
-    appId: number,
-    businessTypeId: number,
-    providerId: number,
-    selectedOrganization: OrgOptions | null) => Promise<void>;
-  // addOrganization: (option: Omit<OrgOptions, "organizationData">) => void;
 }
-
-const schema = z.object({
-  organizationName: z.string(),
-});
 
 export const usePopOverStore = create<PopoverState>((set) => ({
   organization: [],
   businesses: [],
+  users: [],
   selectedOrganization: null,
   setSelectedOrganization: (option) => set(() => ({ selectedOrganization: option })),
   fetchOrganization: async () => {
@@ -64,6 +72,15 @@ export const usePopOverStore = create<PopoverState>((set) => ({
       console.error(error);
     }
   },
+  fetchUsers: async () => {
+    try {
+      const response = await axios.get('/api/users');
+      const data = response.data;
+      set(() => ({ users: data}));
+    } catch (error) {
+      console.error(error)
+    }
+  },
   fetchBusinessesByOrganization: async (organizationId) => {
     try {
       const response = await axios.get(`/api/business?organizationId=${organizationId}`);
@@ -74,33 +91,4 @@ export const usePopOverStore = create<PopoverState>((set) => ({
       console.error(error);
     }
   },
-  createBusiness: async (name, appId, businessTypeId, providerId, selectedOrganization) => {
-    try {
-      const response = await axios.post('/api/business', {
-        name,
-        appId,
-        businessTypeId,
-        providerId,
-        organizationId: selectedOrganization?.id
-      }, {
-        headers: {
-          'Content-Type': 'application/json',// Replace authToken with the actual token value
-        },
-      });
-      console.log(response.data);
-    } catch (error) {
-      console.error(error);
-    }
-  }
-  // addOrganization: (option) => {
-  //   const { organizationName } = schema.parse(option);
-  //   const newOrganization = {
-  //     organizationId: uuidv4(),
-  //     organizationName,
-  //     organizationData: [],
-  //   };
-  //   set((state) => ({
-  //     organization: [...state.organization, newOrganization],
-  //   }));
-  // },
 }));

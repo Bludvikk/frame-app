@@ -2,7 +2,7 @@
 
 export default function Home() {
   return (
-   <div>
+   <div className="items-center justify-center">
     Home
    </div>
   )

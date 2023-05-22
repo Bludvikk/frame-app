@@ -4,7 +4,7 @@
 const Settings = () => {
     return (
         
-        <div>
+        <div className="text-sm rounded-md">
             Settings
         </div>
     );
